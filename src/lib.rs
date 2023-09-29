@@ -1,9 +1,9 @@
-use std::{path::Path, error::Error};
+use std::{error::Error, path::Path};
 use tokio::fs::File;
 use tokio::io::BufReader;
 
 use clap::Parser;
-use log::{info, debug};
+use log::{debug, info};
 
 mod engine;
 
@@ -41,7 +41,7 @@ fn parse_filepath(file_path: &str) -> Result<String, String> {
     }
 }
 
-pub async fn run() -> Result<(), Box<dyn Error>>{
+pub async fn run() -> Result<(), Box<dyn Error>> {
     // Init
     env_logger::init();
     info!("Payment engine is starting...");
@@ -50,7 +50,7 @@ pub async fn run() -> Result<(), Box<dyn Error>>{
 
     // Read CSV file containing transactions
     let file = File::open(args.file_path).await?;
-    let reader = BufReader::new(file);
+    let rdr = BufReader::new(file);
 
     // Process transactions data
 
