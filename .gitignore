@@ -2,3 +2,4 @@
 Cargo.lock
 /.vscode
 /transactions.csv
+/accounts.csv

@@ -1,14 +1,14 @@
-use std::{collections::HashMap, error::Error};
+use std::collections::HashMap;
 
 use csv_async::{AsyncReaderBuilder, Trim};
 use tokio::io;
 use tokio_stream::StreamExt;
 
-use super::model::{ClientAccount, Transaction};
+use super::{model::{ClientAccount, Transaction}, error::EngineError};
 
 pub async fn process_transactions<AR: io::AsyncRead + Send + Unpin>(
     rdr: AR,
-) -> Result<HashMap<u16, ClientAccount>, Box<dyn Error>> {
+) -> Result<HashMap<u16, ClientAccount>, EngineError> {
     // Read and deserialize data
     let reader = AsyncReaderBuilder::new()
         .trim(Trim::All)

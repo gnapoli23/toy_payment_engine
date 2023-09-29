@@ -1,4 +1,4 @@
-use std::{error::Error, path::Path};
+use std::path::Path;
 use tokio::fs::File;
 use tokio::io::{self, BufReader};
 
@@ -6,6 +6,7 @@ use clap::Parser;
 use log::info;
 
 mod engine;
+pub use engine::EngineError;
 
 // Using a struct here for maintanaibility reasons, so that if the application/engine needs
 // to handle other future command-line arguments, they can be easily added.
@@ -41,7 +42,7 @@ fn parse_filepath(file_path: &str) -> Result<String, String> {
     }
 }
 
-pub async fn run() -> Result<(), Box<dyn Error>> {
+pub async fn run() -> Result<(), engine::EngineError> {
     // Init
     env_logger::init();
     info!("Payment engine started.");
@@ -58,11 +59,11 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
 
     // Output info on accounts
     let mut wrt = csv_async::AsyncSerializer::from_writer(io::stdout());
-
     for (_, acc) in accounts {
         wrt.serialize(acc).await?;
     }
 
     wrt.flush().await?;
+    info!("All transactions data processed");
     Ok(())
 }
