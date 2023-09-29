@@ -8,7 +8,7 @@ use super::model::{ClientAccount, Transaction};
 
 pub async fn process_transactions<AR: io::AsyncRead + Send + Unpin>(
     rdr: AR,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<HashMap<u16, ClientAccount>, Box<dyn Error>> {
     // Read and deserialize data
     let reader = AsyncReaderBuilder::new()
         .trim(Trim::All)
@@ -20,11 +20,15 @@ pub async fn process_transactions<AR: io::AsyncRead + Send + Unpin>(
     let mut accounts: HashMap<u16, ClientAccount> = HashMap::new();
     while let Some(record) = iter.try_next().await? {
         if let Some(account) = accounts.get_mut(&record.client_id) {
-            // If we already have an existing account, then we have to handle the transaction record basing on its type
+            // If we already have an existing account, then we have to handle the transaction record
+            account.update(record);
         } else {
-            // Otherwise we need to create a new account for the record
-            // /let acc = ClientAccount::new(record.client_id)
+            // Otherwise we need to create a new account and store the transaction
+            let mut new_account = ClientAccount::new(record.client_id);
+            new_account.update(record);
+            accounts.insert(new_account.client_id, new_account);
         }
     }
-    todo!()
+
+    Ok(accounts)
 }
