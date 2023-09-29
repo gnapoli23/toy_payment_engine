@@ -20,7 +20,7 @@ pub enum TransactionType {
     Chargeback,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum TransactionStatus {
     /// A loaded transaction. The transaction hasn't been verified yet.
     Loaded,
@@ -41,7 +41,7 @@ impl Default for TransactionStatus {
 }
 
 /// Represents a single transaction record
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Transaction {
     #[serde(alias = "type")]
     pub tx_type: TransactionType,
@@ -59,10 +59,10 @@ pub struct Transaction {
 pub struct ClientAccount {
     #[serde(rename(serialize = "client"))]
     pub client_id: u16,
-    available: Decimal,
-    held: Decimal,
-    total: Decimal,
-    locked: bool,
+    pub available: Decimal,
+    pub held: Decimal,
+    pub total: Decimal,
+    pub locked: bool,
     #[serde(skip)]
     txs: HashMap<u32, Transaction>,
 }
