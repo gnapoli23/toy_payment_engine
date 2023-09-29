@@ -1,5 +1,11 @@
+use std::{path::Path, error::Error};
+use tokio::fs::File;
+use tokio::io::BufReader;
+
 use clap::Parser;
 use log::{info, debug};
+
+mod engine;
 
 // Using a struct here for maintanaibility reasons, so that if the application/engine needs
 // to handle other future command-line arguments, they can be easily added.
@@ -7,22 +13,49 @@ use log::{info, debug};
 #[command(author, version, about, long_about = None)]
 struct Args {
     // Input CSV file path
-    #[arg(index = 1)]
+    #[arg(index = 1, value_parser = parse_filepath)]
     pub file_path: String,
 }
 
-pub fn run() {
+fn parse_filepath(file_path: &str) -> Result<String, String> {
+    let path = Path::new(file_path);
+
+    // Check that the path exists
+    if !path.exists() {
+        return Err(String::from("File path doesn't exist"));
+    }
+
+    // Check that the file is a CSV
+    if let Some(ext) = path.extension() {
+        if let Some(ext_str) = ext.to_str() {
+            if ext_str.to_lowercase() == "csv" {
+                Ok(file_path.into())
+            } else {
+                Err(String::from("File is not in CSV format"))
+            }
+        } else {
+            Err(String::from("Unable to convert file path to string"))
+        }
+    } else {
+        Err(String::from("File path hasn't any extension"))
+    }
+}
+
+pub async fn run() -> Result<(), Box<dyn Error>>{
     // Init
     env_logger::init();
     info!("Payment engine is starting...");
     let args = Args::parse();
     debug!("Input args: {args:?}");
-    // 1) Init engine
 
-    // 2) Read CSV file containing transactions
+    // Read CSV file containing transactions
+    let file = File::open(args.file_path).await?;
+    let reader = BufReader::new(file);
 
-    // 3) Process transactions data
+    // Process transactions data
 
-    // 4) Output info on accounts
+    // Output info on accounts
     println!("All transactions have been processed");
+
+    todo!()
 }
