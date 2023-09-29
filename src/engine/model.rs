@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use log::{error, warn};
+use log::warn;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
@@ -99,7 +99,7 @@ impl ClientAccount {
                         data.status = TransactionStatus::Verified;
                         e.insert(data); // register tx
                     } else {
-                        error!(
+                        warn!(
                             "Unable to process tx: amount not valid - account: #{:?}, amount: {:?}",
                             self.client_id, amount
                         );
@@ -140,10 +140,10 @@ impl ClientAccount {
                             data.status = TransactionStatus::Verified;
                             e.insert(data); // register tx
                         } else {
-                            error!("Unable to process withdrawal tx: not enough funds - account: #{:?}, available: {:?}, amount: {:?}", self.client_id, self.available, amount);
+                            warn!("Unable to process withdrawal tx: not enough funds - account: #{:?}, available: {:?}, amount: {:?}", self.client_id, self.available, amount);
                         }
                     } else {
-                        error!(
+                        warn!(
                             "Unable to process tx: amount not valid - account: #{:?}, amount: {:?}",
                             self.client_id, amount
                         );
@@ -189,25 +189,25 @@ impl ClientAccount {
                         warn!("Dispute for transaction with id {:?} can't be processed: amount not valid", tx.tx_id);
                     }
                 }
-                TransactionStatus::Loaded => error!(
+                TransactionStatus::Loaded => warn!(
                     "Unable to process dispute tx: tx with id {:?} has not been verified",
                     data.tx_id
                 ),
-                TransactionStatus::Disputed => error!(
+                TransactionStatus::Disputed => warn!(
                     "Unable to process dispute tx: tx with id {:?} is already under dispute",
                     data.tx_id
                 ),
-                TransactionStatus::Resolved => error!(
+                TransactionStatus::Resolved => warn!(
                     "Unable to process dispute tx: tx with id {:?} has been already resolved",
                     data.tx_id
                 ),
-                TransactionStatus::Chargebacked => error!(
+                TransactionStatus::Chargebacked => warn!(
                     "Unable to process dispute tx: tx with id {:?} has been already chargebacked",
                     data.tx_id
                 ),
             }
         } else {
-            error!(
+            warn!(
                 "Unable to process dispute tx: tx with id {:?} not found",
                 data.tx_id
             );
@@ -234,25 +234,25 @@ impl ClientAccount {
                         warn!("Resolve for transaction with id {:?} can't be processed: amount not valid", tx.tx_id);
                     }
                 }
-                TransactionStatus::Loaded => error!(
+                TransactionStatus::Loaded => warn!(
                     "Unable to process resolve tx: tx with id {:?} has not been verified",
                     data.tx_id
                 ),
-                TransactionStatus::Verified => error!(
+                TransactionStatus::Verified => warn!(
                     "Unable to process resolve tx: tx with id {:?} is not under dispute",
                     data.tx_id
                 ),
-                TransactionStatus::Resolved => error!(
+                TransactionStatus::Resolved => warn!(
                     "Unable to process resolve tx: tx with id {:?} has been already resolved",
                     data.tx_id
                 ),
-                TransactionStatus::Chargebacked => error!(
+                TransactionStatus::Chargebacked => warn!(
                     "Unable to process resolve tx: tx with id {:?} has been already chargebacked",
                     data.tx_id
                 ),
             }
         } else {
-            error!(
+            warn!(
                 "Unable to process dispute tx: tx with id {:?} not found",
                 data.tx_id
             );
@@ -280,25 +280,25 @@ impl ClientAccount {
                         warn!("Chargeback for transaction with id {:?} can't be processed: amount not valid", tx.tx_id);
                     }
                 }
-                TransactionStatus::Loaded => error!(
+                TransactionStatus::Loaded => warn!(
                     "Unable to process chargeback tx: tx with id {:?} has not been verified",
                     data.tx_id
                 ),
-                TransactionStatus::Verified => error!(
+                TransactionStatus::Verified => warn!(
                     "Unable to process chargeback tx: tx with id {:?} has not been disputed",
                     data.tx_id
                 ),
-                TransactionStatus::Disputed => error!(
+                TransactionStatus::Disputed => warn!(
                     "Unable to process chargeback tx: tx with id {:?} has not been resolved",
                     data.tx_id
                 ),
-                TransactionStatus::Chargebacked => error!(
+                TransactionStatus::Chargebacked => warn!(
                     "Unable to process chargeback tx: tx with id {:?} has been already chargebacked",
                     data.tx_id
                 ),
             }
         } else {
-            error!(
+            warn!(
                 "Unable to process dispute tx: tx with id {:?} not found",
                 data.tx_id
             );
