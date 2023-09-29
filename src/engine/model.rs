@@ -79,9 +79,9 @@ impl ClientAccount {
         match data.tx_type {
             TransactionType::Deposit => self.deposit(data),
             TransactionType::Withdrawal => self.withdrawal(data),
-            TransactionType::Dispute => self.dispute(data),
-            TransactionType::Resolve => self.resolve(data),
-            TransactionType::Chargeback => self.chargeback(data),
+            TransactionType::Dispute => self.dispute(&data),
+            TransactionType::Resolve => self.resolve(&data),
+            TransactionType::Chargeback => self.chargeback(&data),
         }
     }
 
@@ -89,7 +89,7 @@ impl ClientAccount {
         // Check that account is not locked
         if !self.locked {
             // Check that the transaction is not already registered
-            if let Entry::Vacant(e) = self.txs.entry(data.tx_id) {
+            if let Entry::Vacant(_) = self.txs.entry(data.tx_id) {
                 // A Deposit should always have a valid `amount` specified, otherwise we have an invalid record
                 if let Some(amount) = data.amount {
                     if amount > Decimal::ZERO {
@@ -97,7 +97,7 @@ impl ClientAccount {
                         self.total += amount;
                         self.available += amount;
                         data.status = TransactionStatus::Verified;
-                        e.insert(data); // register tx
+                        self.txs.insert(data.tx_id, data); //register tx
                     } else {
                         warn!(
                             "Unable to process tx: amount not valid - account: #{:?}, amount: {:?}",
@@ -129,7 +129,7 @@ impl ClientAccount {
         // Check that account is not locked
         if !self.locked {
             // Check that the transaction is not already registered
-            if let Entry::Vacant(e) = self.txs.entry(data.tx_id) {
+            if let Entry::Vacant(_) = self.txs.entry(data.tx_id) {
                 // A Withdrawal should always have a valid `amount` specified, otherwise we have an invalid record
                 if let Some(amount) = data.amount {
                     if amount > Decimal::ZERO {
@@ -138,7 +138,7 @@ impl ClientAccount {
                             self.total -= amount;
                             self.available -= amount;
                             data.status = TransactionStatus::Verified;
-                            e.insert(data); // register tx
+                            self.txs.insert(data.tx_id, data); // register tx
                         } else {
                             warn!("Unable to process withdrawal tx: not enough funds - account: #{:?}, available: {:?}, amount: {:?}", self.client_id, self.available, amount);
                         }
@@ -169,10 +169,11 @@ impl ClientAccount {
         }
     }
 
-    fn dispute(&mut self, mut data: Transaction) {
+    fn dispute(&mut self, data: &Transaction) {
         // Check that the transaction exists
         if let Some(tx) = self.txs.get_mut(&data.tx_id) {
             // Check the status
+            println!("TO DISPUTE: {tx:?}");
             match tx.status {
                 // We can dispute only verified transactions, so transactions that have already changed accounts' funds
                 TransactionStatus::Verified => {
@@ -181,7 +182,7 @@ impl ClientAccount {
                         if self.available >= amount {
                             self.available -= amount;
                             self.held += amount;
-                            data.status = TransactionStatus::Disputed;
+                            tx.status = TransactionStatus::Disputed;
                         } else {
                             warn!("Dispute for transaction with id {:?} can't be processed: not enough funds - available: {:?}, amount: {:?}", tx.tx_id, self.available, amount);
                         }
@@ -214,7 +215,7 @@ impl ClientAccount {
         }
     }
 
-    fn resolve(&mut self, mut data: Transaction) {
+    fn resolve(&mut self, data: &Transaction) {
         // Check that the transaction exists
         if let Some(tx) = self.txs.get_mut(&data.tx_id) {
             // Check the status
@@ -226,7 +227,7 @@ impl ClientAccount {
                         if self.held >= amount {
                             self.available += amount;
                             self.held -= amount;
-                            data.status = TransactionStatus::Resolved;
+                            tx.status = TransactionStatus::Resolved;
                         } else {
                             warn!("Resolve for transaction with id {:?} can't be processed: not enough funds - held: {:?}, amount: {:?}", tx.tx_id, self.held, amount);
                         }
@@ -259,20 +260,20 @@ impl ClientAccount {
         }
     }
 
-    fn chargeback(&mut self, mut data: Transaction) {
+    fn chargeback(&mut self, data: &Transaction) {
         // Check that the transaction exists
         if let Some(tx) = self.txs.get_mut(&data.tx_id) {
             // Check the status
             match tx.status {
-                // We can chargeback only resolved transactions
-                TransactionStatus::Resolved => {
+                // We can chargeback only disputed transactions
+                TransactionStatus::Disputed => {
                     if let Some(amount) = tx.amount {
-                        // Check that held amount is enough
+                        
                         if self.held >= amount {
-                            self.total -= amount;
                             self.held -= amount;
+                            self.total -= amount;
                             self.locked = true;
-                            data.status = TransactionStatus::Resolved;
+                            tx.status = TransactionStatus::Chargebacked;
                         } else {
                             warn!("Chargeback for transaction with id {:?} can't be processed: not enough funds - held: {:?}, amount: {:?}", tx.tx_id, self.held, amount);
                         }
@@ -288,8 +289,8 @@ impl ClientAccount {
                     "Unable to process chargeback tx: tx with id {:?} has not been disputed",
                     data.tx_id
                 ),
-                TransactionStatus::Disputed => warn!(
-                    "Unable to process chargeback tx: tx with id {:?} has not been resolved",
+                TransactionStatus::Resolved => warn!(
+                    "Unable to process chargeback tx: tx with id {:?} has been already resolved",
                     data.tx_id
                 ),
                 TransactionStatus::Chargebacked => warn!(

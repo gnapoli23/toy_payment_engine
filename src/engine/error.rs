@@ -3,7 +3,7 @@ use std::fmt::Display;
 #[derive(Debug)]
 pub enum EngineError {
     CsvError(csv_async::Error),
-    IoError(std::io::Error)
+    IoError(std::io::Error),
 }
 
 impl Display for EngineError {

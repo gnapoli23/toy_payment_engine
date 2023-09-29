@@ -4,7 +4,10 @@ use csv_async::{AsyncReaderBuilder, Trim};
 use tokio::io;
 use tokio_stream::StreamExt;
 
-use super::{model::{ClientAccount, Transaction}, error::EngineError};
+use super::{
+    error::EngineError,
+    model::{ClientAccount, Transaction},
+};
 
 pub async fn process_transactions<AR: io::AsyncRead + Send + Unpin>(
     rdr: AR,
@@ -31,4 +34,71 @@ pub async fn process_transactions<AR: io::AsyncRead + Send + Unpin>(
     }
 
     Ok(accounts)
+}
+
+#[cfg(test)]
+mod processor_tests {
+    use super::*;
+    use rust_decimal::Decimal;
+    use tokio::{fs::File, io::BufReader};
+
+    #[tokio::test]
+    async fn test_success_resolve() {
+        let file = File::open("res/tx_success_resolve.csv").await.unwrap();
+        let rdr = BufReader::new(file);
+
+        // Process transactions data
+        let accounts = process_transactions(rdr).await.unwrap();
+        let account = accounts.get(&1).unwrap();
+        assert_eq!(1u16, account.client_id);
+        assert_eq!(Decimal::new(5, 0), account.available);
+        assert_eq!(Decimal::ZERO, account.held);
+        assert_eq!(Decimal::new(5, 0), account.total);
+        assert!(!account.locked);
+    }
+
+    #[tokio::test]
+    async fn test_success_chargeback() {
+        let file = File::open("res/tx_success_chargeback.csv").await.unwrap();
+        let rdr = BufReader::new(file);
+
+        // Process transactions data
+        let accounts = process_transactions(rdr).await.unwrap();
+        let account = accounts.get(&1).unwrap();
+        assert_eq!(1u16, account.client_id);
+        assert_eq!(Decimal::new(3, 0), account.available);
+        assert_eq!(Decimal::ZERO, account.held);
+        assert_eq!(Decimal::new(3, 0), account.total);
+        assert!(account.locked);
+    }
+
+    #[tokio::test]
+    async fn test_tx_not_disputable() {
+        let file = File::open("res/tx_not_disputable.csv").await.unwrap();
+        let rdr = BufReader::new(file);
+
+        // Process transactions data
+        let accounts = process_transactions(rdr).await.unwrap();
+        let account = accounts.get(&1).unwrap();
+        assert_eq!(1u16, account.client_id);
+        assert_eq!(Decimal::new(5, 0), account.available);
+        assert_eq!(Decimal::ZERO, account.held);
+        assert_eq!(Decimal::new(5, 0), account.total);
+        assert!(!account.locked);
+    }
+
+    #[tokio::test]
+    async fn test_tx_not_withdrawable() {
+        let file = File::open("res/tx_not_withdrawable.csv").await.unwrap();
+        let rdr = BufReader::new(file);
+
+        // Process transactions data
+        let accounts = process_transactions(rdr).await.unwrap();
+        let account = accounts.get(&1).unwrap();
+        assert_eq!(1u16, account.client_id);
+        assert_eq!(Decimal::new(5, 0), account.available);
+        assert_eq!(Decimal::ZERO, account.held);
+        assert_eq!(Decimal::new(5, 0), account.total);
+        assert!(!account.locked);
+    }
 }
